@@ -1,10 +1,9 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
-const OrderItems = sequelize.define("OrderItems", {
+const FavoriteItems = sequelize.define("FavoriteItems", {
     id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
     quantity: { type: DataTypes.INTEGER, allowNull: false },
-    price: { type: DataTypes.INTEGER, allowNull: false },
-}, { timestamps: true, tableName: "order_items" });
+}, { timestamps: true, tableName: "favorite_items" });
 
-module.exports = OrderItems;
+module.exports = FavoriteItems;

@@ -52,6 +52,10 @@ exports.loginUser = async (req, res) => {
       return res.status(403).json({ message: "Tài khoản không hợp lệ" });
     }
 
+    if(user.isActive == 0){
+      return res.status(403).json({ message: "Tài khoản đã bị khóa vui lòng liện hệ tới CSKH" });
+    } 
+
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
@@ -137,5 +141,111 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { search, role } = req.query;
+
+    let where = {};
+
+    if (search) {
+      where = {
+        ...where,
+        name: { [Op.like]: `%${search}%` }
+      };
+    }
+
+    if (role) {
+      where.role = role; // admin, customer, seller...
+    }
+
+    const users = await User.findAll({
+      attributes: ["id", "name", "email", "phone", "role", "isActive", "createdAt"],
+      where
+    });
+
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id, {
+      attributes: ["id", "name", "email", "phone", "role", "isActive", "createdAt"]
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
+    }
+
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+exports.updateUserByAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, role } = req.body;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy user!" });
+    }
+
+    user.name = name ?? user.name;
+    user.email = email ?? user.email;
+    user.phone = phone ?? user.phone;
+    user.role = role ?? user.role;
+
+    await user.save();
+
+    res.json({ success: true, message: "Cập nhật thành công!", user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.changeRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User không tồn tại" });
+
+    user.role = role;
+    await user.save();
+
+    res.json({ success: true, message: "Đổi quyền thành công!", user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.toggleUserStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ message: "User không tồn tại" });
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: user.isActive ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản",
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

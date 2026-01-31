@@ -14,10 +14,13 @@ function slugify(str) {
 }
 
 const Category = sequelize.define("Category", {
-    id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-    name: { type: DataTypes.STRING(100), allowNull: false },
-    slug: { type: DataTypes.STRING(200), allowNull: false },
-    description: { type: DataTypes.TEXT },
+  id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  slug: { type: DataTypes.STRING(200), allowNull: false },
+  description: { type: DataTypes.TEXT },
+  image: { type: DataTypes.STRING(200), allowNull: true },
+  isActive: { type: DataTypes.BOOLEAN },
+  isMain: { type: DataTypes.BOOLEAN, defaultValue: false, },
 }, { timestamps: true, tableName: "categories" });
 
 Category.slugify = slugify;

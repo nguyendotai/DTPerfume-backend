@@ -7,20 +7,18 @@ const Brand = require("../models/Brands");
 
 exports.addToCart = async (req, res) => {
   try {
-    const user_id = req.user.id; // middleware đã decode token
+    const user_id = req.user.id; 
     const { variant_id, quantity } = req.body;
 
     if (!variant_id || !quantity)
       return res.status(400).json({ message: "Thiếu dữ liệu" });
 
-    // Tìm hoặc tạo cart cho user
     let cart = await Cart.findOne({ where: { user_id } });
 
     if (!cart) {
       cart = await Cart.create({ user_id });
     }
 
-    // Kiểm tra item đã có trong cart chưa
     let item = await CartItem.findOne({
       where: { cart_id: cart.id, variant_id }
     });
@@ -49,7 +47,6 @@ exports.updateQuantity = async (req, res) => {
     const { quantity } = req.body;
 
     if (!quantity || quantity < 1) {
-      // Nếu FE gửi số <= 0 -> xóa luôn item
       await CartItem.destroy({ where: { id: item_id } });
       return res.json({ message: "Item đã bị xóa" });
     }
@@ -148,7 +145,7 @@ exports.getCart = async (req, res) => {
 exports.syncCart = async (req, res) => {
   try {
     const user_id = req.user.id;
-    const { items } = req.body; // danh sách cart local FE
+    const { items } = req.body; 
 
     let cart = await Cart.findOne({ where: { user_id } });
     if (!cart) {

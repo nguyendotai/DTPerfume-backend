@@ -7,8 +7,8 @@ const ProductVariant = require("../models/ProductVariants");
 const Product = require("../models/Products");
 const Cart = require("../models/Carts");
 
-const EXCHANGE_RATE = 25000;       // 1 USD = 25,000 VND
-const USD_TO_CENTS = 100;          // 1 USD = 100 cents
+const EXCHANGE_RATE = 25000;
+const USD_TO_CENTS = 100;
 
 exports.createCheckout = async (req, res) => {
   try {
@@ -40,7 +40,7 @@ exports.createCheckout = async (req, res) => {
     const orderItemsData = items.map(item => {
       const variant = variants.find(v => v.id === item.variant_id);
 
-      const price = Number(item.price);      // ✅ giá tại thời điểm mua
+      const price = Number(item.price);
       const quantity = item.quantity;
 
       totalPriceVND += price * quantity;
@@ -61,9 +61,19 @@ exports.createCheckout = async (req, res) => {
       total_price: totalPriceVND,
       discount: 0,
       status: "pending",
-      payment_method: "stripe", // hoặc credit_card nếu chưa sửa ENUM
-      shipping_address: shipping_address // object OK
+      payment_method: "stripe",
+      shipping_address: shipping_address
     });
+
+    // 🔔 REALTIME NOTIFICATION
+    if (global.io) {
+      global.io.emit("new-notification", {
+        id: Date.now(),
+        message: `Đơn hàng mới #${order.id}`,
+        type: "order",
+        createdAt: new Date(),
+      });
+    };
 
     // --------------------------------------------
     // 4. Tạo order items
@@ -95,7 +105,7 @@ exports.createCheckout = async (req, res) => {
       const variant = variants.find(v => v.id === item.variant_id);
 
       const priceVND =
-        Number(item.price); // dùng price FE gửi
+        Number(item.price);
 
       const priceUSD = priceVND / EXCHANGE_RATE;
       const amountInCents = Math.round(priceUSD * USD_TO_CENTS);
@@ -170,11 +180,18 @@ exports.createCODOrder = async (req, res) => {
       });
     }
 
-    // ✅ XÓA GIỎ HÀNG TRONG DB
-    // ✅ Đúng
     if (user_id) {
       await Cart.destroy({
         where: { user_id },
+      });
+    };
+
+    if (global.io) {
+      global.io.emit("new-notification", {
+        id: Date.now(),
+        message: `Đơn hàng mới #${order.id}`,
+        type: "order",
+        createdAt: new Date(),
       });
     }
 
@@ -225,10 +242,6 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
-/**
- * 📦 Lấy chi tiết 1 đơn hàng
- * GET /api/orders/:order_id
- */
 exports.getOrderDetail = async (req, res) => {
   try {
     const { order_id } = req.params;
@@ -267,10 +280,6 @@ exports.getOrderDetail = async (req, res) => {
   }
 };
 
-/**
- * 🚚 Lấy trạng thái đơn hàng
- * GET /api/orders/status/:order_id
- */
 exports.getOrderStatus = async (req, res) => {
   try {
     const { order_id } = req.params;
@@ -292,10 +301,6 @@ exports.getOrderStatus = async (req, res) => {
   }
 };
 
-/**
- * 🔧 (Admin) Cập nhật trạng thái đơn hàng
- * PUT /api/orders/:order_id/status
- */
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { order_id } = req.params;
@@ -309,6 +314,15 @@ exports.updateOrderStatus = async (req, res) => {
     const order = await Order.findByPk(order_id);
     if (!order) {
       return res.status(404).json({ message: "Đơn hàng không tồn tại" });
+    };
+
+    if (global.io) {
+      global.io.emit("new-notification", {
+        id: Date.now(),
+        message: `Đơn #${order.id} chuyển sang ${status}`,
+        type: "order-status",
+        createdAt: new Date(),
+      });
     }
 
     order.status = status;
@@ -333,7 +347,6 @@ exports.confirmStripePayment = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
-    // ✅ Chỉ Stripe mới được paid
     if (order.payment_method !== "stripe") {
       return res.status(400).json({ message: "Đơn hàng này không dùng Stripe" });
     }
@@ -348,5 +361,49 @@ exports.confirmStripePayment = async (req, res) => {
   } catch (error) {
     console.error("Confirm payment error:", error);
     res.status(500).json({ message: "Lỗi xác nhận thanh toán" });
+  }
+};
+
+exports.getAllOrders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Order.findAndCountAll({
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset,
+      include: [
+        {
+          model: OrderItem,
+          as: "items",
+          include: [
+            {
+              model: ProductVariant,
+              as: "variant",
+              include: [
+                {
+                  model: Product,
+                  as: "product",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    return res.status(200).json({
+      data: rows,
+      pagination: {
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+      },
+    });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    res.status(500).json({ message: "Không thể lấy danh sách đơn hàng" });
   }
 };

@@ -95,7 +95,6 @@ exports.updateBrand = async (req, res) => {
             return res.status(404).json({ message: "Brand không tồn tại" });
         }
 
-        // 👉 Nếu upload logo mới → xóa logo cũ
         let logoUrl = brand.logo;
         let bannerUrl = brand.banner;
 
@@ -159,7 +158,6 @@ exports.deleteBrand = async (req, res) => {
             return res.status(404).json({ message: "Brand không tồn tại" });
         }
 
-        // 👉 Xóa logo trên Cloudinary
         if (brand.logo) {
             const cloudId = brand.logo.split("/").pop().split(".")[0];
             await cloudinary.uploader.destroy(`dtperfume/brands/logo/${cloudId}`);
@@ -207,4 +205,29 @@ exports.getBrandBySlug = async (req, res) => {
             message: "Lỗi server",
         });
     }
+};// ================= GET BY SLUG (ADMIN) =================
+exports.getBrandBySlugAdmin = async (req, res) => {
+    try {
+        const { slug } = req.params;
+
+        const brand = await Brand.findOne({ where: { slug } });
+        if (!brand) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy brand",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: brand,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server",
+        });
+    }
 };
+

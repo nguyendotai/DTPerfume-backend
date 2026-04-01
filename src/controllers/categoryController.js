@@ -1,9 +1,5 @@
 const Category = require("../models/Categories");
 
-/**
- * GET /api/categories
- * GET /api/categories?isMain=true|false
- */
 exports.getCategories = async (req, res) => {
   try {
     const { isMain } = req.query;
@@ -25,9 +21,6 @@ exports.getCategories = async (req, res) => {
   }
 };
 
-/**
- * GET /api/categories/:slug
- */
 exports.getCategoryBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -49,9 +42,6 @@ exports.getCategoryBySlug = async (req, res) => {
   }
 };
 
-/**
- * POST /api/categories
- */
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, isActive, isMain } = req.body;
@@ -90,9 +80,6 @@ exports.createCategory = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/categories/:slug
- */
 exports.updateCategory = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -139,9 +126,6 @@ exports.updateCategory = async (req, res) => {
   }
 };
 
-/**
- * DELETE /api/categories/:slug
- */
 exports.deleteCategory = async (req, res) => {
   try {
     const { slug } = req.params;

@@ -23,8 +23,13 @@ router.get("/", brandController.getAllBrands);
 
 router.get("/:slug", brandController.getBrandBySlug);
 
-// GET BY ID
-router.get("/:id", brandController.getBrandById);
+// GET BRAND BY SLUG (ADMIN)
+router.get(
+    "/admin/:slug",
+    middleWare.authMiddleware,
+    middleWare.adminMiddleware,
+    brandController.getBrandBySlugAdmin
+);
 
 // UPDATE BRAND
 router.put(

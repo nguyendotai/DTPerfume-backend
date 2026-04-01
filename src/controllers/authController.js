@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
       email,
       password: hashed,
       phone,
-      role: "customer", // mặc định role là user
+      role: "customer",
     });
 
     res.json(user);
@@ -52,9 +52,9 @@ exports.loginUser = async (req, res) => {
       return res.status(403).json({ message: "Tài khoản không hợp lệ" });
     }
 
-    if(user.isActive == 0){
+    if (user.isActive == 0) {
       return res.status(403).json({ message: "Tài khoản đã bị khóa vui lòng liện hệ tới CSKH" });
-    } 
+    }
 
     const token = jwt.sign(
       { id: user.id, role: user.role },
@@ -62,7 +62,13 @@ exports.loginUser = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ token, user });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -96,15 +102,29 @@ exports.loginAdmin = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ token, user });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+exports.logout = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false,
+  });
+  res.json({ message: "Logged out" });
+};
+
 exports.getMe = async (req, res) => {
   try {
-    // req.user được gắn vào từ middleware xác thực token
     const user = await User.findByPk(req.user.id, {
       attributes: ["id", "name", "email", "phone", "role", "createdAt"],
     });
@@ -127,8 +147,6 @@ exports.updateProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "Không tìm thấy người dùng!" });
     }
-
-    // Cập nhật các trường được cho phép
     user.name = name || user.name;
     user.email = email || user.email;
     user.phone = phone || user.phone;
@@ -158,7 +176,7 @@ exports.getAllUsers = async (req, res) => {
     }
 
     if (role) {
-      where.role = role; // admin, customer, seller...
+      where.role = role;
     }
 
     const users = await User.findAll({

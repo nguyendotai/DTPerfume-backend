@@ -12,6 +12,8 @@ router.get("/me", middleWare.authMiddleware, authController.getMe);
 
 router.put("/update", middleWare.authMiddleware, authController.updateProfile);
 
+router.post("/logout", middleWare.authMiddleware, authController.logout);
+
 router.get("/", middleWare.authMiddleware, middleWare.adminMiddleware, authController.getAllUsers);
 router.get("/:id", middleWare.authMiddleware, middleWare.adminMiddleware, authController.getUserById);
 router.put("/:id", middleWare.authMiddleware, middleWare.adminMiddleware, authController.updateUserByAdmin);
